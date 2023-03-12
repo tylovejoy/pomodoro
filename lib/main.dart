@@ -22,9 +22,11 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Pomodoro',
-      theme: ThemeData(
-        primarySwatch: Colors.red,
-      ),
+      theme: ThemeData.dark(useMaterial3: true),
+      // ThemeData(
+      //   primarySwatch: Colors.red,
+      //   useMaterial3: true,
+      // ),
       home: const HomePage(title: 'Pomodoro'),
     );
   }
