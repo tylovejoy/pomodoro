@@ -6,6 +6,9 @@ import 'package:audioplayers/audioplayers.dart';
 
 Pomodoro pomodoro = Pomodoro.base();
 AudioPlayer player = AudioPlayer();
+bool isPaused = false;
+bool isStarted = false;
+
 void main() {
   runApp(const MyApp());
 }
@@ -23,10 +26,7 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: 'Pomodoro',
       theme: ThemeData.dark(useMaterial3: true),
-      // ThemeData(
-      //   primarySwatch: Colors.red,
-      //   useMaterial3: true,
-      // ),
+      debugShowCheckedModeBanner: false,
       home: const HomePage(title: 'Pomodoro'),
     );
   }
@@ -44,10 +44,10 @@ class HomePage extends StatefulWidget {
 class _HomePage extends State<HomePage> {
   @override
   Widget build(Object context) {
-    return NavMenu(menuItems: [
-      const TimerField(),
+    return const NavMenu(menuItems: [
+      TimerField(),
       SettingsPage(),
-      const AboutPage(),
+      AboutPage(),
     ]);
   }
 }
@@ -137,6 +137,10 @@ class _TimerField extends State<TimerField> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        IntervalCount(
+          intervals: pomodoro.getIntervals(),
+          curInterval: pomodoro.getIntervals() - pomodoro.getIntervalsLeft(),
+        ),
         Container(
           padding: const EdgeInsetsDirectional.all(50),
           child: Text(
@@ -148,6 +152,7 @@ class _TimerField extends State<TimerField> {
           startCallback: startTimer,
           pauseCallback: pauseTimer,
           resetCallback: resetTimer,
+          fullResetCallback: fullResetTimer,
         )
       ],
     );
@@ -157,7 +162,7 @@ class _TimerField extends State<TimerField> {
     if (_timeLeft < pomodoro.getFuncForMode()() || timer?.isActive == true) {
       return;
     }
-    Timer.periodic(const Duration(milliseconds: 10), (timer) {
+    Timer.periodic(const Duration(milliseconds: 1), (timer) {
       this.timer = timer;
 
       if (!_isPaused) {
@@ -167,6 +172,8 @@ class _TimerField extends State<TimerField> {
       }
 
       if (_timeLeft == 0) {
+        isPaused = false;
+        isStarted = false;
         playAlarm();
         timer.cancel();
         pomodoro.modeChange();
@@ -194,6 +201,11 @@ class _TimerField extends State<TimerField> {
   void pauseTimer() {
     _isPaused = !_isPaused;
   }
+
+  void fullResetTimer() {
+    resetTimer();
+    pomodoro.reset();
+  }
 }
 
 class TimerButton extends StatefulWidget {
@@ -201,17 +213,17 @@ class TimerButton extends StatefulWidget {
       {super.key,
       required this.startCallback,
       required this.resetCallback,
-      required this.pauseCallback});
+      required this.pauseCallback,
+      required this.fullResetCallback});
   final VoidCallback startCallback;
   final VoidCallback pauseCallback;
   final VoidCallback resetCallback;
+  final VoidCallback fullResetCallback;
   @override
   State<StatefulWidget> createState() => _TimerButton();
 }
 
 class _TimerButton extends State<TimerButton> {
-  bool _isPaused = false;
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -221,22 +233,47 @@ class _TimerButton extends State<TimerButton> {
         Row(
           children: [
             ElevatedButton(
-              onPressed: widget.startCallback,
-              child: const Text('START'),
+                onPressed: !isStarted
+                    ? () {
+                        setState(() {
+                          isStarted = !isStarted;
+                          widget.startCallback();
+                        });
+                      }
+                    : null,
+                child: const Text("START")),
+            const SizedBox(width: 10),
+            ElevatedButton(
+              onPressed: isStarted
+                  ? () {
+                      setState(() {
+                        isPaused = !isPaused;
+                        widget.pauseCallback();
+                      });
+                    }
+                  : null,
+              child: Text(isPaused ? 'RESUME' : 'PAUSE'),
             ),
             const SizedBox(width: 10),
             ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _isPaused = !_isPaused;
-                });
-                widget.pauseCallback();
-              },
-              child: Text(_isPaused ? 'RESUME' : 'PAUSE'),
-            ),
+                onPressed: () {
+                  setState(() {
+                    isPaused = false;
+                    isStarted = false;
+                    widget.resetCallback();
+                  });
+                },
+                child: const Text('RESET')),
             const SizedBox(width: 10),
             ElevatedButton(
-                onPressed: widget.resetCallback, child: const Text('RESET')),
+                onPressed: () {
+                  setState(() {
+                    isPaused = false;
+                    isStarted = false;
+                    widget.fullResetCallback();
+                  });
+                },
+                child: const Text('FULL RESET'))
           ],
         ),
         const SizedBox(width: 1)
@@ -377,6 +414,38 @@ class _SettingsPageState extends State<SettingsPage> {
           )
         ],
       ),
+    );
+  }
+}
+
+class IntervalCount extends StatefulWidget {
+  const IntervalCount(
+      {super.key, required this.intervals, required this.curInterval});
+  final int intervals;
+  final int curInterval;
+  @override
+  State<IntervalCount> createState() => _IntervalCountState();
+}
+
+class _IntervalCountState extends State<IntervalCount> {
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> circles = [];
+
+    for (var i = 0; i < widget.intervals; i++) {
+      circles.add(Icon(
+        widget.curInterval > i ? Icons.lens : Icons.trip_origin,
+      ));
+    }
+
+    return Column(
+      children: [
+        Text("Round ${widget.curInterval} / ${widget.intervals}"),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: circles,
+        ),
+      ],
     );
   }
 }

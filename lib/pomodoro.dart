@@ -30,9 +30,9 @@ class Pomodoro {
   }
 
   Pomodoro.base() {
-    _workTime = 2;
-    _breakTime = 1;
-    _longBreakTime = 3;
+    _workTime = 25;
+    _breakTime = 5;
+    _longBreakTime = 15;
     _workTimeSeconds = _convertMinutesToSeconds(_workTime);
     _breakTimeSeconds = _convertMinutesToSeconds(_breakTime);
     _longBreakTimeSeconds = _convertMinutesToSeconds(_longBreakTime);
@@ -138,5 +138,10 @@ class Pomodoro {
     if (_currentMode == PomodoroMode.rest) return getBreakTimeSeconds;
     if (_currentMode == PomodoroMode.longRest) return getLongBreakTimeSeconds;
     return getWorkTimeSeconds;
+  }
+
+  void reset() {
+    resetIntervalsLeft();
+    _currentMode = PomodoroMode.work;
   }
 }
